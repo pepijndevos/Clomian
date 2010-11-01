@@ -31,13 +31,13 @@
   (->> blocks
     (partition 128)
     (reduce (fn [counts col]
-              (map #(assoc %1 %2 (inc (get %1 %2 0))) counts col))
+              (pmap #(update-in %1 [%2] (fnil inc 0)) counts col))
             (take 128 (repeat {})))))
 
 (defn plotfn [freqs btype layer]
   (get (nth freqs layer) (byte btype) 0))
 
-(let [fr (take 20 (file-seq (clojure.java.io/file "/Users/pepijndevos/Library/Application Support/minecraft/saves/World2/DIM-1/")))
+(let [fr (file-seq (clojure.java.io/file "/Users/pepijndevos/Library/Application Support/minecraft/saves/World2/DIM-1/"))
       fr (mapcat blocks (filter #(and (.isFile %) (not (.isHidden %))) fr))
       fr (freqs fr)
       canvas (-> (reduce #(add-function %1 (partial plotfn fr (key %2)) 0 128
