@@ -17,27 +17,28 @@
             90 "Portal"})
 
 (defn blocks [file]
-  (lazy-seq (-> file
-              java.io.FileInputStream.
-              org.jnbt.NBTInputStream.
-              .readTag
-              .getValue
-              (get "Level")
-              .getValue
-              (get "Blocks")
-              .getValue)))
+  (-> file
+    java.io.FileInputStream.
+    org.jnbt.NBTInputStream.
+    .readTag
+    .getValue
+    (get "Level")
+    .getValue
+    (get "Blocks")
+    .getValue))
 
 (defn freqs [blocks]
   (->> blocks
     (partition 128)
-    (apply map vector)
-    (pmap frequencies)))
+    (reduce (fn [counts col]
+              (map #(assoc %1 %2 (inc (get %1 %2 0))) counts col))
+            (take 128 (repeat {})))))
 
 (defn plotfn [freqs btype layer]
   (get (nth freqs layer) (byte btype) 0))
 
-(let [fr (take 100 (file-seq (clojure.java.io/file "/Users/pepijndevos/Library/Application Support/minecraft/saves/World2/DIM-1/")))
-      fr (apply concat (map blocks (filter #(and (.isFile %) (not (.isHidden %))) fr)))
+(let [fr (take 20 (file-seq (clojure.java.io/file "/Users/pepijndevos/Library/Application Support/minecraft/saves/World2/DIM-1/")))
+      fr (mapcat blocks (filter #(and (.isFile %) (not (.isHidden %))) fr))
       fr (freqs fr)
       canvas (-> (reduce #(add-function %1 (partial plotfn fr (key %2)) 0 128
                                         :series-label (val %2))
@@ -47,6 +48,6 @@
                                   :legend true)
                           types))]
   (slider #(set-y-range canvas 0 %) (range 0 500))
-  (view canvas)
-  (save canvas "graph.png")
-  (save (set-y-range canvas 0 50) "graph-low.png"))
+  (view canvas))
+  ;(save canvas "graph.png")
+  ;(save (set-y-range canvas 0 50) "graph-low.png"))
