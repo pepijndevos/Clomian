@@ -98,6 +98,15 @@
             85 "Fence"
             89 "Lightstone"})
 
+(defn dat-seq [dir]
+  (filter #(re-find #"^c.*dat$" (.getName %))
+    (tree-seq
+     (fn [^java.io.File f] (and
+                             (.isDirectory f)
+                             (re-find (re-pattern (str "^(" (.getName dir) "|[a-z0-9]{1,2})$")) (.getName f))))
+     (fn [^java.io.File d] (seq (.listFiles d)))
+     dir)))
+
 (defn blocks [file]
   (-> ^java.io.File file
     java.io.FileInputStream.
@@ -121,8 +130,7 @@
 
 (defn -main [path & options]
   (let [options (set (map #(Integer. %) options))
-        fr (file-seq (clojure.java.io/file path))
-        fr (mapcat blocks (filter #(and (.isFile ^java.io.File %) (not (.isHidden ^java.io.File %))) fr))
+        fr (mapcat blocks (dat-seq (clojure.java.io/file path)))
         fr (freqs fr)
         canvas (-> (reduce #(add-function %1 (partial plotfn fr (key %2)) 0 128
                                           :series-label (val %2))
@@ -131,7 +139,7 @@
                                     :y-label "Blocks"
                                     :legend true)
                             (select-keys types options)))]
-    (slider #(set-y-range canvas 0 %) (range 0 500))
+    ;(slider #(set-y-range canvas 0 %) (range 0 500))
     (view canvas)))
     ;(save canvas "graph.png")
     ;(save (set-y-range canvas 0 50) "graph-low.png")))
