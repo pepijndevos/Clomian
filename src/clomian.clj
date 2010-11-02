@@ -24,18 +24,18 @@
     java.io.FileInputStream.
     org.jnbt.NBTInputStream.
     .readTag
+    ^java.util.Map (.getValue)
+    ^org.jnbt.CompoundTag (.get "Level")
     .getValue
-    (.get "Level")
-    .getValue
-    (.get "Blocks")
+    ^org.jnbt.ByteArrayTag (.get "Blocks")
     .getValue))
 
 (defn freqs [blocks]
   (->> blocks
     (partition 128)
     (reduce (fn [counts col]
-              (doall (map #(update-in %1 [%2] (fnil inc 0)) counts col)))
-            (take 128 (repeat {})))))
+              (doall (map #(assoc! %1 %2 (inc (get %1 %2 0))) counts col)))
+            (repeatedly 128 #(transient {})))))
 
 (defn plotfn [freqs btype layer]
   (get (nth freqs layer) (byte btype) 0))
