@@ -98,12 +98,17 @@
             85 "Fence"
             89 "Lightstone"})
 
-(defn dat-seq [dir]
-  (filter #(re-find #"^c.*dat$" (.getName %))
+(defn dat-seq [^java.io.File dir]
+  (filter #(let [n (.getName ^java.io.File %)]
+             (and
+               (.endsWith n ".dat")
+               (.startsWith n "c.")))
     (tree-seq
      (fn [^java.io.File f] (and
                              (.isDirectory f)
-                             (re-find (re-pattern (str "^(" (.getName dir) "|[a-z0-9]{1,2})$")) (.getName f))))
+                             (let [n (.getName f)]
+                               (or (> 3 (count n))
+                                   (= n (.getName dir))))))
      (fn [^java.io.File d] (seq (.listFiles d)))
      dir)))
 
@@ -123,13 +128,14 @@
     (partition 128)
     (reduce (fn [counts col]
               (doall (map #(assoc! %1 %2 (inc (get %1 %2 0))) counts col)))
-            (repeatedly 128 #(transient {})))))
+            (repeatedly 128 #(transient {})))
+       (map persistent!)))
 
 (defn plotfn [freqs btype layer]
   (get (nth freqs layer) (byte btype) 0))
 
 (defn -main [path & options]
-  (let [options (set (map #(Integer. %) options))
+  (let [options (set (map #(Integer. ^String %) options))
         fr (mapcat blocks (dat-seq (clojure.java.io/file path)))
         fr (freqs fr)
         canvas (-> (reduce #(add-function %1 (partial plotfn fr (key %2)) 0 128
