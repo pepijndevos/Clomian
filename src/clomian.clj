@@ -123,6 +123,7 @@
 (defn blocks [file]
   (-> ^java.io.File file
     java.io.FileInputStream.
+    java.io.BufferedInputStream.
     org.jnbt.NBTInputStream.
     .readTag
     ^java.util.Map (.getValue)
