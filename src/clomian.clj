@@ -98,12 +98,12 @@
             85 "Fence"
             89 "Lightstone"})
 
-(defn array-cat [& ars]
-  (let [offset (reductions + (map count ars))
+(defn aconcat [& ars]
+  (let [offset (reductions + (map alength ars))
         total-lenght (last offset)
         far (java.util.Arrays/copyOf (first ars) total-lenght)]
     (doseq [[ar off] (map vector (next ars) offset)]
-      (System/arraycopy ar 0 far off (count ar)))
+      (System/arraycopy ar 0 far off (alength ar)))
     far))
 
 (defn dat-seq [^java.io.File dir]
@@ -145,7 +145,7 @@
 
 (defn -main [path & options]
   (let [options (set (map #(Integer. ^String %) options))
-        fr (time (apply array-cat (map blocks (dat-seq (clojure.java.io/file path)))))
+        fr (time (apply aconcat (map blocks (dat-seq (clojure.java.io/file path)))))
         fr (time (freqs fr))
         canvas (time (-> (reduce #(add-function %1 (partial plotfn fr (key %2)) 0 128
                                           :series-label (val %2))
