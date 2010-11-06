@@ -112,6 +112,14 @@
      (fn [^java.io.File d] (seq (.listFiles d)))
      dir)))
 
+(defn aconcat [& ars]
+  (let [offset (reductions + (map alength ars))
+        total-lenght (last offset)
+        far (java.util.Arrays/copyOf (first ars) total-lenght)]
+    (doseq [[ar off] (map vector (next ars) offset)]
+      (System/arraycopy ar 0 far off (alength ar)))
+    far))
+
 (defn blocks [^java.io.File file]
   (with-open [nbt (-> file
                     java.io.FileInputStream.
@@ -136,25 +144,21 @@
 (defn afrequencies
   [^bytes a]
   (persistent!
-   (areduce a
-            idx
-            counts
-            (transient {})
+   (areduce a idx counts (transient {})
             (let [x (aget a idx)]
               (assoc! counts x (inc (get counts x 0)))))))
 
 (defn freqs [^bytes blocks]
   (let [layers (map #(get-layer % blocks) (range 128))]
-    (map afrequencies layers)))
+    (pmap afrequencies layers)))
 
 (defn plotfn [freqs btype layer]
   (get (nth freqs layer) (byte btype) 0))
 
 (defn -main [path & options]
   (let [options (set (map #(Integer. ^String %) options))
-        fr (reduce #(map (partial merge-with +) %1 %2)
-                  (pmap (comp freqs blocks)
-                        (dat-seq (clojure.java.io/file path))))
+        fr (time (apply aconcat (map blocks (dat-seq (clojure.java.io/file path)))))
+        fr (time (freqs fr))        
         canvas (time (-> (reduce #(add-function %1 (partial plotfn fr (key %2)) 0 128
                                           :series-label (val %2))
                            (xy-plot [] []
